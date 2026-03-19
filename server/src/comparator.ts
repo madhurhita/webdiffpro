@@ -81,7 +81,7 @@ async function compareViewport(browser: Browser, viewport: Viewport, config: Com
 
     // Load Sources
     const loadSource = async (page: Page, source: string) => {
-      const waitOptions = { waitUntil: 'networkidle' as const, timeout: 60000 };
+      const waitOptions = { waitUntil: 'load' as const, timeout: 120000 };
       if (source.startsWith('http')) {
         await page.goto(source, waitOptions);
       } else {
@@ -142,8 +142,18 @@ async function compareViewport(browser: Browser, viewport: Viewport, config: Com
     const screenshotBPath = path.join(config.reportDir, `${viewport.name}-b.png`);
     const screenshotDiffPath = path.join(config.reportDir, `${viewport.name}-diff.png`);
 
-    await pageA.screenshot({ path: screenshotAPath, fullPage: true });
-    await pageB.screenshot({ path: screenshotBPath, fullPage: true });
+    await pageA.screenshot({ 
+      path: screenshotAPath, 
+      fullPage: true, 
+      timeout: 120000,
+      animations: 'disabled'
+    });
+    await pageB.screenshot({ 
+      path: screenshotBPath, 
+      fullPage: true, 
+      timeout: 120000,
+      animations: 'disabled'
+    });
 
     // Pixel Diff
     const imgA = PNG.sync.read(await fs.readFile(screenshotAPath));
