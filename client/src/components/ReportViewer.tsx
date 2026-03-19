@@ -193,7 +193,25 @@ interface ReportViewerProps {
 const ReportViewer: React.FC<ReportViewerProps> = ({ report, onBack }) => {
   const [expandedViewport, setExpandedViewport] = useState<string | null>('desktop');
 
-  const overallMatch = (report.viewports.reduce((acc: number, v: any) => acc + v.matchPercentage, 0) / report.viewports.length).toFixed(2);
+  if (!report || report.status === 'failed' || !report.viewports || report.viewports.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-red-500/10 border border-red-500/20 rounded-3xl space-y-6 max-w-2xl mx-auto w-full">
+        <XCircle className="w-16 h-16 text-red-500" />
+        <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-white">Analysis Failed</h2>
+            <p className="text-zinc-400 text-sm">{report?.message || 'The comparison process could not be completed. One of the pages might have timed out or blocked our access.'}</p>
+        </div>
+        <button 
+          onClick={onBack}
+          className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-sm hover:bg-white/10 transition-all font-bold text-white"
+        >
+          Try Different URLs
+        </button>
+      </div>
+    );
+  }
+
+  const overallMatch = (report.viewports.reduce((acc: number, v: any) => acc + (v.matchPercentage || 0), 0) / report.viewports.length).toFixed(2);
 
   return (
     <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -239,13 +257,13 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report, onBack }) => {
         />
         <SummaryCard 
           label="Avg Load Time" 
-          value={`${(report.viewports.reduce((acc: number, v: any) => acc + v.performanceA.loadTime, 0) / report.viewports.length / 1000).toFixed(2)}s`} 
+          value={`${(report.viewports.reduce((acc: number, v: any) => acc + (v.performanceA?.loadTime || 0), 0) / report.viewports.length / 1000).toFixed(2)}s`} 
           icon={<Clock className="w-5 h-5 text-orange-400" />}
           subValue="Page A average"
         />
         <SummaryCard 
           label="Total Assets" 
-          value={report.viewports[0].performanceA.resources.length} 
+          value={report.viewports[0]?.performanceA?.resources?.length || 0} 
           icon={<FileBox className="w-5 h-5 text-purple-400" />}
           subValue="Network requests"
         />
