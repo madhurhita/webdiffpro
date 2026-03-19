@@ -1,0 +1,18 @@
+{
+  "name": "webdiff-pro-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Premium Full-Stack Web Comparison Engine",
+  "scripts": {
+    "install:all": "npm install --prefix client && npm install --prefix server",
+    "dev": "npx -y concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build:all": "npm run build --prefix client && npm run build --prefix server"
+  },
+  "keywords": [
+    "web-diff",
+    "visual-comparison",
+    "playwright",
+    "dom-analysis",
+    "pixelmatch"
+  ]
+}
