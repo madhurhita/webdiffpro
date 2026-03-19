@@ -81,13 +81,38 @@ async function compareViewport(browser: Browser, viewport: Viewport, config: Com
 
     // Load Sources
     const loadSource = async (page: Page, source: string) => {
+      const waitOptions = { waitUntil: 'networkidle' as const, timeout: 60000 };
       if (source.startsWith('http')) {
-        await page.goto(source, { waitUntil: 'networkidle' });
+        await page.goto(source, waitOptions);
       } else {
-        // Assume file path
         const html = await fs.readFile(source, 'utf-8');
-        await page.setContent(html, { waitUntil: 'networkidle' });
+        await page.setContent(html, waitOptions);
       }
+
+      // 1. Wait for standard load states
+      await page.waitForLoadState('load');
+      await page.waitForLoadState('domcontentloaded');
+
+      // 2. Scroll to bottom and back to top to trigger lazy loading / animations
+      await page.evaluate(async () => {
+        await new Promise((resolve) => {
+          let totalHeight = 0;
+          let distance = 100;
+          let timer = setInterval(() => {
+            let scrollHeight = document.body.scrollHeight;
+            window.scrollBy(0, distance);
+            totalHeight += distance;
+            if (totalHeight >= scrollHeight) {
+              clearInterval(timer);
+              resolve(null);
+            }
+          }, 100);
+        });
+        window.scrollTo(0, 0);
+      });
+
+      // 3. Final settle time for videos/animations/dynamic JS
+      await page.waitForTimeout(3000); 
     };
 
     await Promise.all([

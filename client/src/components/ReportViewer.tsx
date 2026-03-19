@@ -18,6 +18,173 @@ import {
 import ComparisonSlider from './ComparisonSlider.tsx';
 import DOMTree from './DOMTree.tsx';
 
+const downloadHTMLReport = (report: any) => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const overallMatch = (report.viewports.reduce((acc: number, v: any) => acc + v.matchPercentage, 0) / report.viewports.length).toFixed(2);
+  
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebDiff Pro Report - ${report.reportId}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #ededed; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .style-scrollbar::-webkit-scrollbar { width: 4px; }
+        .style-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .style-scrollbar::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-6xl mx-auto space-y-8">
+        <header class="flex justify-between items-end border-b border-white/10 pb-6">
+            <div>
+                <h1 class="text-4xl font-extrabold tracking-tight">WebDiff <span class="text-blue-500">Pro</span></h1>
+                <p class="text-zinc-500 mt-2 font-mono text-sm">REPORT_ID: ${report.reportId}</p>
+            </div>
+            <div class="text-right">
+                <div class="text-3xl font-bold text-green-400">${overallMatch}% MATCH</div>
+                <div class="text-xs text-zinc-600 uppercase tracking-widest mt-1">Overall Integrity Score</div>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${report.viewports.map((v: any) => `
+                <div class="glass p-6 rounded-2xl">
+                    <div class="text-xs font-bold text-zinc-500 uppercase mb-2 tracking-widest">${v.name}</div>
+                    <div class="text-2xl font-bold">${v.matchPercentage}%</div>
+                    <div class="text-xs text-zinc-600 font-mono mt-1">${v.pixelsDifferent.toLocaleString()} px diff</div>
+                </div>
+            `).join('')}
+        </section>
+
+        <section class="space-y-16">
+            ${report.viewports.map((v: any, idx: number) => `
+                <div class="space-y-6">
+                    <div class="flex items-center gap-4">
+                        <div class="h-8 w-1 bg-blue-500 rounded-full"></div>
+                        <h2 class="text-xl font-bold capitalize">${v.name} Viewport <span class="text-zinc-600 font-normal">(${v.resolution})</span></h2>
+                    </div>
+
+                    <!-- Interactive Tabs Container -->
+                    <div class="glass rounded-3xl overflow-hidden">
+                        <div class="bg-white/5 p-4 flex gap-2 border-b border-white/5 scroll-x overflow-auto">
+                            <button onclick="switchTab(${idx}, 'split')" id="tab-${idx}-split" class="tab-btn active px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Split View</button>
+                            <button onclick="switchTab(${idx}, 'diff')" id="tab-${idx}-diff" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Pixel Diff</button>
+                            <button onclick="switchTab(${idx}, 'slider')" id="tab-${idx}-slider" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all text-blue-400">Slider View</button>
+                            <button onclick="switchTab(${idx}, 'sourceA')" id="tab-${idx}-sourceA" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Page A</button>
+                            <button onclick="switchTab(${idx}, 'sourceB')" id="tab-${idx}-sourceB" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Page B</button>
+                        </div>
+
+                        <div class="p-4 bg-black/40 min-h-[400px]">
+                            <!-- Split View -->
+                            <div id="content-${idx}-split" class="tab-content">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <div class="text-[10px] uppercase font-bold text-zinc-600 text-center tracking-widest">Original (A)</div>
+                                        <div class="rounded-xl overflow-hidden border border-white/10 shadow-lg"><img src="${apiUrl}/reports/${report.reportId}/${v.screenshotA}" class="w-full"></div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-[10px] uppercase font-bold text-zinc-600 text-center tracking-widest">Comparison (B)</div>
+                                        <div class="rounded-xl overflow-hidden border border-white/10 shadow-lg"><img src="${apiUrl}/reports/${report.reportId}/${v.screenshotB}" class="w-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Diff View -->
+                            <div id="content-${idx}-diff" class="tab-content hidden">
+                                <div class="space-y-4">
+                                    <div class="text-[10px] uppercase font-bold text-zinc-500 text-center tracking-widest bg-red-500/10 py-1 rounded">Visual changes highlighted in bright red</div>
+                                    <div class="rounded-xl overflow-hidden border border-white/10 bg-black shadow-2xl"><img src="${apiUrl}/reports/${report.reportId}/${v.screenshotDiff}" class="w-full max-w-4xl mx-auto py-8"></div>
+                                </div>
+                            </div>
+
+                            <!-- Slider View -->
+                            <div id="content-${idx}-slider" class="tab-content hidden h-[600px] flex items-center justify-center">
+                                <div class="slider-container relative w-full h-full overflow-hidden rounded-xl border border-white/10 bg-black/50" id="slider-${idx}">
+                                    <div class="absolute inset-0 bg-cover bg-left-top" style="background-image: url('${apiUrl}/reports/${report.reportId}/${v.screenshotB}')"></div>
+                                    <div class="absolute inset-0 bg-cover bg-left-top slider-overlay" style="background-image: url('${apiUrl}/reports/${report.reportId}/${v.screenshotA}'); width: 50%;"></div>
+                                    <div class="absolute inset-y-0 left-1/2 w-1 bg-blue-500 cursor-ew-resize slider-handle group" style="left: 50%;">
+                                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-blue-600 rounded-full border-4 border-black/80 shadow-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <div class="flex gap-1"><div class="w-1 h-3 bg-white/50 rounded-full"></div><div class="w-1 h-3 bg-white/50 rounded-full"></div></div>
+                                        </div>
+                                    </div>
+                                    <input type="range" min="0" max="100" value="50" class="absolute inset-0 opacity-0 cursor-ew-resize w-full z-20" oninput="handleSlider(this, ${idx})">
+                                </div>
+                            </div>
+
+                            <!-- Source A -->
+                            <div id="content-${idx}-sourceA" class="tab-content hidden">
+                                <div class="rounded-xl overflow-hidden border border-white/10"><img src="${apiUrl}/reports/${report.reportId}/${v.screenshotA}" class="w-full"></div>
+                            </div>
+
+                            <!-- Source B -->
+                            <div id="content-${idx}-sourceB" class="tab-content hidden">
+                                <div class="rounded-xl overflow-hidden border border-white/10"><img src="${apiUrl}/reports/${report.reportId}/${v.screenshotB}" class="w-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </section>
+
+        <footer class="text-center pt-24 pb-12">
+            <p class="text-[10px] text-zinc-700 uppercase tracking-[4px]">Powered by WebDiff Pro • ${new Date().toLocaleDateString()} • Generated Report</p>
+        </footer>
+    </div>
+
+    <script>
+        function switchTab(idx, tabId) {
+            // Hide all contents for this viewport
+            const section = document.querySelectorAll(\`[id^="content-\${idx}-"]\`);
+            section.forEach(c => c.classList.add('hidden'));
+            
+            // Remove active style from all buttons for this viewport
+            const buttons = document.querySelectorAll(\`[id^="tab-\${idx}-"]\`);
+            buttons.forEach(b => b.classList.remove('bg-blue-600', 'text-white', 'shadow-lg'));
+            buttons.forEach(b => b.classList.add('text-zinc-500'));
+
+            // Show selected
+            document.getElementById(\`content-\${idx}-\${tabId}\`).classList.remove('hidden');
+            const activeBtn = document.getElementById(\`tab-\${idx}-\${tabId}\`);
+            activeBtn.classList.remove('text-zinc-500');
+            activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-lg');
+        }
+
+        function handleSlider(input, idx) {
+            const container = document.getElementById(\`slider-\${idx}\`);
+            const overlay = container.querySelector('.slider-overlay');
+            const handle = container.querySelector('.slider-handle');
+            const val = input.value + '%';
+            
+            overlay.style.width = val;
+            handle.style.left = val;
+        }
+
+        // Initialize first tabs
+        window.onload = () => {
+            ${report.viewports.map((_: any, i: number) => `switchTab(${i}, 'split');`).join('\n')}
+        };
+    </script>
+</body>
+</html>
+  `;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `webdiff-report-${report.reportId}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 interface ReportViewerProps {
   report: any;
   onBack: () => void;
@@ -43,14 +210,17 @@ const ReportViewer: React.FC<ReportViewerProps> = ({ report, onBack }) => {
           <h2 className="text-3xl font-bold text-white">Visual Analysis Report</h2>
           <p className="text-zinc-500 text-sm">Report ID: {report.reportId}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors">
-            <Share2 className="w-4 h-4" /> Share
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20">
-            <Download className="w-4 h-4" /> Download Report
-          </button>
-        </div>
+    <div className="flex items-center gap-3">
+      <button className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors">
+        <Share2 className="w-4 h-4" /> Share
+      </button>
+      <button 
+        onClick={() => downloadHTMLReport(report)}
+        className="flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20"
+      >
+        <Download className="w-4 h-4" /> Download Report
+      </button>
+    </div>
       </div>
 
       {/* Summary Cards */}
