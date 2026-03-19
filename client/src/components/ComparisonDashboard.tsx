@@ -39,12 +39,21 @@ const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ onStart, onCo
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
       const response = await axios.post(`${apiUrl}/api/compare`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000 // 5-minute timeout for Render cold starts
       });
+      
+      if (!response.data || !response.data.result) {
+        throw new Error('Analysis completed but returned an empty response. Please try again.');
+      }
+      
       onComplete(response.data.result);
     } catch (err: any) {
       console.error(err);
-      onError(err.response?.data?.error || 'Failed to complete comparison. Please try again.');
+      const msg = err.code === 'ECONNABORTED' 
+        ? 'The request timed out. Render server might be taking too long to wake up. Please wait 1 minute and try again!'
+        : (err.response?.data?.error || err.message || 'Failed to connect to the analysis engine.');
+      onError(msg);
     }
   };
 
