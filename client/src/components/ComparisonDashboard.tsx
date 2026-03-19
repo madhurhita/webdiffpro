@@ -37,7 +37,8 @@ const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ onStart, onCo
     if (authB) formData.append('authHeadersB', authB);
 
     try {
-      const response = await axios.post('http://localhost:4000/api/compare', formData, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const response = await axios.post(`${apiUrl}/api/compare`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       onComplete(response.data.result);
@@ -150,7 +151,9 @@ const ComparisonDashboard: React.FC<ComparisonDashboardProps> = ({ onStart, onCo
           >
             <Shield className="w-4 h-4" />
             Advanced: Authentication Headers {showAdvanced ? '(-)' : '(+)'}
-            <HelpCircle className="w-3 h-3 opacity-50" title="JSON format for extra headers" />
+            <span title="JSON format for extra headers">
+              <HelpCircle className="w-3 h-3 opacity-50" />
+            </span>
           </button>
           
           {showAdvanced && (

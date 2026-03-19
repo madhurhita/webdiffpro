@@ -114,7 +114,8 @@ const SummaryCard = ({ label, value, icon, subValue }: any) => (
 
 const ViewportAccordion = ({ viewport, reportId, isExpanded, onToggle }: any) => {
   const [activeTab, setActiveTab] = useState('split');
-  const baseUrl = `http://localhost:4000/reports/${reportId}/`;
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+  const baseUrl = `${apiUrl}/reports/${reportId}/`;
 
   const tabs = [
     { id: 'split', label: 'Split View' },
