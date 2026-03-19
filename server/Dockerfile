@@ -1,5 +1,5 @@
 # Use official Playwright image as base (contains Node and all browser deps)
-FROM mcr.microsoft.com/playwright:v1.50.1-jammy
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
 
 # Create app directory
 WORKDIR /app
