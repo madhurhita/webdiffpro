@@ -14,5 +14,6 @@
     "playwright",
     "dom-analysis",
     "pixelmatch"
-  ]
+  ],
+  "author": "Madhurhita Ganguly"
 }

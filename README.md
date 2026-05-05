@@ -54,4 +54,4 @@ The client will start on `http://localhost:5173` (or the next available port).
 - `/server/public/reports`: Temporary storage for generated screenshots and reports.
 
 ## Authors
-Created with high performance and aesthetics by Antigravity.
+Created by Madhurhita Ganguly.
